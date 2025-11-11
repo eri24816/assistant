@@ -82,7 +82,7 @@ class DiskStore(Generic[T]):
         
         
 # Store active threads and their agents
-threads_store = DiskStore[Thread](Path("data/threads"), index_fields=['id','title','created_at'])
+threads_store = DiskStore[Thread](Path("data/threads").resolve().absolute(), index_fields=['id','title','created_at'])
 
 agents: Dict[str, Agent] = {}
 
@@ -168,6 +168,7 @@ async def delete_thread(thread_id: str):
         del agents[thread_id]
     
     return {"status": "success"}
+    
 
 if __name__ == "__main__":
     import uvicorn

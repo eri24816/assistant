@@ -1,10 +1,7 @@
 from typing import Callable, Dict, Any, Tuple, List, Literal
 import inspect
 import re
-import math
-from datetime import datetime
 from typing import get_type_hints, get_origin, get_args, Union
-
 
 def generate_spec_from_function(func: Callable) -> Dict[str, Any]:
     """Generate OpenAI tool spec from a function's signature and docstring.
@@ -178,108 +175,3 @@ def _python_type_to_json_schema(python_type: Any) -> Tuple[str, List[str] | None
     
     # Default to string
     return "string", None
-
-
-# Tool/Function definitions
-def get_weather(location: str) -> str:
-    """Get the current weather for a specific location.
-    
-    Args:
-        location: The city or location name (e.g., "New York", "London")
-    
-    Returns:
-        A string describing the weather conditions
-    """
-    # Mock implementation - replace with real API in production
-    return f"The weather in {location} is sunny, 72°F with light winds."
-
-
-def calculate(expression: str) -> str:
-    """Perform mathematical calculations safely.
-    
-    Args:
-        expression: A mathematical expression as a string (e.g., "15 * 23", "sqrt(16)")
-    
-    Returns:
-        The result of the calculation as a string
-    """
-    try:
-        # Safe evaluation using math functions
-        allowed_names = {
-            k: v for k, v in math.__dict__.items() if not k.startswith("__")
-        }
-        result = eval(expression, {"__builtins__": {}}, allowed_names)
-        return f"The result of {expression} is {result}"
-    except Exception as e:
-        return f"Error calculating {expression}: {str(e)}"
-
-
-def get_current_time() -> str:
-    """Get the current date and time.
-    
-    Returns:
-        Current date and time as a string
-    """
-    return f"Current date and time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-
-
-def search_web(query: str) -> str:
-    """Search the web for information.
-    
-    Args:
-        query: The search query string
-    
-    Returns:
-        Search results as a string
-    """
-    # Mock implementation - replace with real search API in production
-    return f"Search results for '{query}': Found relevant information about {query}."
-
-
-def create_todo(task: str, priority: Literal["low", "medium", "high"] = "medium") -> str:
-    """Create a new todo item.
-    
-    Args:
-        task: The task description
-        priority: Priority level (low, medium, high). Defaults to medium.
-    
-    Returns:
-        Confirmation message
-    """
-    global todos
-    todos.append({"task": task, "priority": priority})
-    return f"Created todo: '{task}' with priority '{priority}'"
-
-
-# Store todos in memory (in production, use a database)
-todos: List[Dict[str, Any]] = []
-
-
-def list_todos() -> str:
-    """List all todo items.
-    
-    Returns:
-        A formatted string listing all todos
-    """
-    global todos
-    if not todos:
-        return "No todos found."
-    
-    result = "Todo List:\n"
-    for i, todo in enumerate(todos, 1):
-        result += f"{i}. {todo.get('task', 'N/A')} (Priority: {todo.get('priority', 'N/A')})\n"
-    return result.strip()
-
-# Generate tools for OpenAI using generate_spec_from_function
-tool_list = [
-    get_weather, 
-    calculate, 
-    get_current_time, 
-    search_web, 
-    create_todo,
-    list_todos
-]
-
-tools = {func.__name__: func for func in tool_list}
-
-tool_specs = [generate_spec_from_function(func) for func in tool_list]

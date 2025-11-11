@@ -8,11 +8,16 @@
                 <div class="message-header" v-if="message.header">
                     {{ message.header }}
                 </div>
-                <ContentRenderer 
-                    class="message-content" 
-                    :content="message.content" 
-                    :isStreaming="isStreaming && index === uiMessages.length - 1" 
-                />
+                <div class="message-content">
+                    <div class="message-avatar" v-if="message.role === 'ai'">
+                    <img src="/avatar.png">
+                        </div>
+                    <ContentRenderer 
+                        
+                        :content="message.content" 
+                        :isStreaming="isStreaming && index === uiMessages.length - 1" 
+                    />
+                </div>
                 <div v-if="message.collapsableContent" class="collapsable-container">
                     <button 
                         class="collapse-toggle"
@@ -51,7 +56,6 @@
                     placeholder="Send a message..."
                     rows="1"
                     ref="textareaRef"
-                    :disabled="isStreaming"
                 ></textarea>
                 <button 
                     @click="sendMessage" 
@@ -218,7 +222,7 @@ const processMessageChunk = (chunk: any, accumulatingMessage: Message) => {
         throw new Error('Unknown chunk type: ' + chunk.type)
     }
     
-    if(accumulatingMessage.role !== currentRole) {
+    if(accumulatingMessage.role !== currentRole || chunk.type === 'tool_call') {
         if (accumulatingMessage.content == ''){
             const poppedMessage = uiMessages.value.pop()
         }
@@ -379,12 +383,32 @@ watch(() => uiMessages, () => {
     overflow: hidden;
 }
 
+.message-content{
+    position: relative;
+}
+
 .message-collapsable-content.collapsed {
     max-height: 0;
     opacity: 0;
     padding: 0;
     margin: 0;
     border: none;
+}
+
+.message-avatar {
+    position: absolute;
+    top: -14px;
+    left: -30px;
+    width: 64px;
+    height: 64px;
+    margin-right: 0.5rem;
+    image-rendering: pixelated;
+    transform: translateX(-100%);
+}
+
+.message-avatar img{
+    width: 64px;
+    height: 64px;
 }
 
 .input-container {
