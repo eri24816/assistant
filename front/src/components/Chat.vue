@@ -292,14 +292,14 @@ watch(() => uiMessages, () => {
 .messages {
     flex-grow: 1;
     overflow-y: auto;
-    padding: 2rem;
+    padding: 1rem;
 }
 
 .message {
     display: flex;
     flex-direction: column;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
     border-bottom: 1px solid #4d4d4f;
 }
 
@@ -319,7 +319,7 @@ watch(() => uiMessages, () => {
 .message-header {
     color: #ececf1;
     font-size: 0.9rem;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
     font-weight: 500;
     opacity: 0.8;
     text-transform: uppercase;
@@ -336,7 +336,7 @@ watch(() => uiMessages, () => {
 }
 
 .collapsable-container {
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
 }
 
 .collapse-toggle {
@@ -369,8 +369,8 @@ watch(() => uiMessages, () => {
     color: #ececf1;
     line-height: 1.6;
     background-color: #2a2b32;
-    padding: 1rem;
-    margin-top: 0.5rem;
+    padding: 0.75rem;
+    margin-top: 0.25rem;
     border-radius: 0.5rem;
     font-family: monospace;
     white-space: pre-wrap;
@@ -380,7 +380,7 @@ watch(() => uiMessages, () => {
     transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
     max-height: 500px;
     opacity: 1;
-    overflow: hidden;
+    overflow: auto;
 }
 
 .message-content{
@@ -412,7 +412,7 @@ watch(() => uiMessages, () => {
 }
 
 .input-container {
-    padding: 2rem;
+    padding: 1rem;
     background-color: #343541;
     border-top: 1px solid #4d4d4f;
 }

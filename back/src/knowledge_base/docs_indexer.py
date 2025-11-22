@@ -22,6 +22,9 @@ class DocsIndexer:
         chroma_persist_directory = persist_directory / "chroma"
         document_snapshot_path = persist_directory / "document_snapshot.json"
         chroma_persist_directory.mkdir(parents=True, exist_ok=True)
+
+
+        self.accepted_extensions = [".md", ".txt"]
         
         self.document_root = document_root
 
@@ -35,19 +38,28 @@ class DocsIndexer:
         self.folder_watcher.set_handlers(on_add=self._on_add, on_remove=self._on_remove, on_rename=self._on_rename)
         self.folder_watcher.start()
 
+
     def check(self):
         self.folder_watcher.check()
 
     def _on_add(self, path: str):
         # Convert absolute path to a relative path before passing to _add_to_vector_db
+        if not path.endswith(tuple(self.accepted_extensions)):
+            return
         print(f"Adding {path}")
         self._add_to_vector_db(path)
 
     def _on_remove(self, path: str):
+        if not path.endswith(tuple(self.accepted_extensions)):
+            return
         print(f"Removing {path}")
         self._remove_from_vector_db(path)
 
     def _on_rename(self, old: str, new: str):
+        if not old.endswith(tuple(self.accepted_extensions)):
+            return
+        if not new.endswith(tuple(self.accepted_extensions)):
+            return
         print(f"Renaming {old} to {new}")
         self._rename_in_vector_db(old, new)
 
