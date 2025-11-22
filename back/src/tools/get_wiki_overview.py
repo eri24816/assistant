@@ -1,7 +1,8 @@
 import os
-
-
-def get_wiki_overview() -> str:
+from pathlib import Path
+from dotenv import load_dotenv
+load_dotenv()
+def get_wiki_overview():
     """Get an overview of the wiki.
     
     Returns:
@@ -10,34 +11,38 @@ def get_wiki_overview() -> str:
     base_path = os.environ.get('WIKI_PATH')
     if not base_path:
         raise ValueError('WIKI_PATH environment variable is not set')
-        # INSERT_YOUR_CODE
-    overview = []
-    for dirpath, dirnames, filenames in os.walk(base_path):
-        # Compute the current depth relative to the base path
-        rel_path = os.path.relpath(dirpath, base_path)
-        depth = 0 if rel_path == '.' else rel_path.count(os.sep) + 1
 
-        # Only consider depth 1 and depth 2 (root and one subdir deep)
-        if depth > 2:
-            # Don't descend further (avoid >2 depth)
-            dirnames[:] = []
-            continue
+    def walk(path: str, depth_remaining: int, max_files: list[int], max_dirs: list[int]):
+        path = str(Path(path))
+        if depth_remaining == 0:
+            return
+        self_max_files = max_files[0]
+        self_max_dirs = max_dirs[0]
+        dirs = []
+        files = []
+        too_much_dirs = False
+        too_much_files = False
+        for item in os.listdir(path):
+            if os.path.isfile(os.path.join(path, item)):
+                if len(files) < self_max_files:
+                    files.append(item)
+                else:
+                    too_much_files = True
+            elif os.path.isdir(os.path.join(path, item)):
+                if len(dirs) < self_max_dirs:
+                    dirs.append([item+'/', walk(os.path.join(path, item), depth_remaining - 1, max_files[1:], max_dirs[1:])])
+                else:
+                    too_much_dirs = True
+        result = []
+        for file in files:
+            result.append(file)
+        if too_much_files:
+            result.append('... more files')
+        for dir in dirs:
+            result.append(dir)
+        if too_much_dirs:
+            result.append('... more directories')
+        return result
+    return walk(base_path, 2, [10, 2], [10, 2])
 
-        indent = '  ' * depth
-        if depth == 0:
-            overview.append(f"{os.path.basename(base_path) or base_path}/")
-        else:
-            overview.append(f"{indent}{os.path.basename(dirpath)}/")
-
-        # Only show 3 items for 2nd-level content (depth==2)
-        if depth == 2:
-            shown_files = filenames[:3]
-            for fname in shown_files:
-                overview.append(f"{indent}  {fname}")
-            # If there are more files, show "..."
-            if len(filenames) > 3:
-                overview.append(f"{indent}  ...")
-            # Prevent going deeper
-            dirnames[:] = []
-
-    return '\n'.join(overview)
+print(get_wiki_overview())

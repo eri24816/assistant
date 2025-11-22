@@ -8,10 +8,11 @@ from pydantic import BaseModel
 from typing import Dict, TypeVar, Generic, List
 from agent import Agent
 import uuid
-
+import os
 from abstraction import Thread
 from pathlib import Path
 from typing import Iterator
+
 
 app = FastAPI()
 
@@ -85,6 +86,14 @@ class DiskStore(Generic[T]):
 threads_store = DiskStore[Thread](Path("data/threads").resolve().absolute(), index_fields=['id','title','created_at'])
 
 agents: Dict[str, Agent] = {}
+
+
+# cd to the wiki so the agent can access it without absolute path.
+wiki_path = os.environ.get('WIKI_PATH')
+if wiki_path:
+    os.chdir(wiki_path)
+else:
+    raise ValueError('WIKI_PATH environment variable is not set')
 
 @app.get("/api/chat/threads/")
 async def get_threads() -> Dict[str, Thread]:
