@@ -7,7 +7,7 @@
    pip install -r back/requirements.txt
    ```
 
-2. Set the environment variables in the .env file.
+2. Create a .env file in the root directory.
    ```
    WORKING_DIR=working directory for the assistant
    OPENAI_API_KEY=your_openai_api_key
