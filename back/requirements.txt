@@ -1,0 +1,6 @@
+beautifulsoup4==4.13.4
+chromadb==1.0.10
+dotenv==0.9.9
+fastapi==0.115.9
+openai==2.7.1
+uvicorn==0.34.3
