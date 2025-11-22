@@ -114,9 +114,9 @@ class FolderWatcher:
         outer = self
 
         class Handler(FileSystemEventHandler):
-            # def on_any_event(self, event) -> None:
-            #     print(f"Event: {event.event_type} {event.src_path} {event.dest_path}")
-            #     return super().on_any_event(event)
+            def on_any_event(self, event) -> None:
+                print(f"Event: {event.event_type} {event.src_path} {event.dest_path} {event.is_directory}")
+                return super().on_any_event(event)
             def on_created(self, event):
                 assert isinstance(event.src_path, str)
                 src = outer._get_relative_path(event.src_path)
@@ -129,13 +129,26 @@ class FolderWatcher:
 
             def on_deleted(self, event):
                 assert isinstance(event.src_path, str)
+                # for deleted event, is_directory is always False.
+                # We ave to manually check if it is a directory.
                 src = outer._get_relative_path(event.src_path)
-                if event.is_directory:
-                    return
+
                 if fnmatch_any(event.src_path, outer.ignore_patterns):
                     return
-                outer._remove_from_snapshot(src)
-                outer.on_remove(src)
+
+                is_directory = src not in outer.last_snapshot
+                if is_directory:
+                    # remove all files in the directory
+                    files_to_remove = []
+                    for file in outer.last_snapshot.keys():
+                        if file.startswith(src + "/"):
+                            files_to_remove.append(file)
+                    for file in files_to_remove:
+                        outer._remove_from_snapshot(file)
+                        outer.on_remove(file)
+                else:
+                    outer._remove_from_snapshot(src)
+                    outer.on_remove(src)
 
             def on_moved(self, event):
                 assert isinstance(event.src_path, str)

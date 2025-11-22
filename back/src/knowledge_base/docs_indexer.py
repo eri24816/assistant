@@ -120,7 +120,7 @@ if __name__ == "__main__":
             n_results = 5
             results = indexer.search_from_vector_db(query, n_results=n_results)
             print("Top results:")
-            for i, (doc, metadata, score) in enumerate(zip(results["documents"][0], results["metadatas"][0], results["distances"][0])):
+            for i, (doc, metadata, score) in enumerate(zip(results["documents"][0], results["metadatas"][0], results["distances"][0])):     # type: ignore
                 print(f"\nResult {i+1}:")
                 print(f"Score: {score:.4f}")
                 print(f"Metadata: {metadata}")
