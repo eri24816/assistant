@@ -20,5 +20,3 @@ for module_info in pkgutil.iter_modules(__path__):
 
 
 tools = {func.__name__: func for func in tool_list}
-
-tool_specs = [generate_spec_from_function(func) for func in tool_list]

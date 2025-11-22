@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from bs4.element import PageElement, Tag, NavigableString
+from typing import TypeVar
 
 
 class MyBeautifulSoup(BeautifulSoup):
@@ -52,3 +53,8 @@ class MyBeautifulSoup(BeautifulSoup):
             yield descendant
 
 
+T = TypeVar('T')
+def notNone(value: T|None) -> T:
+    if value is None:
+        raise ValueError("Value is None")
+    return value

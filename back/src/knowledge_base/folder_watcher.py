@@ -1,10 +1,12 @@
 
 import json
 from pathlib import Path
+import threading
 import time
+import queue
 
 from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
+from watchdog.events import FileSystemEvent, FileSystemEventHandler
 
 import fnmatch
 def file_hash(path: Path) -> str:
@@ -34,11 +36,11 @@ class FolderWatcher:
     Watch a folder and call callbacks when files are added, removed, or renamed.
     When it starts, it also detect changes in the folder since last time it was run.
     '''
-    def __init__(self, target_folder: Path, snapshot_path: Path, ignore_patterns: list[str] = []):
+    def __init__(self, target_folder: Path, snapshot_path: Path, ignore_patterns: list[str] = [], check_interval: float = 0):
         self.target_folder = target_folder
         self.snapshot_path = snapshot_path
         self.ignore_patterns = ignore_patterns
-
+        self.check_interval = check_interval
         ignore_patterns.append(str(snapshot_path))
         
         self.on_add = None
@@ -47,6 +49,11 @@ class FolderWatcher:
 
         self.observer = None
         self.last_snapshot: dict[str, str] = {} # path -> hash
+
+        self.check_now_event = threading.Event()
+
+    def check(self):
+        self.check_now_event.set()
 
     # ---------------------------
     # Handler registration
@@ -114,8 +121,38 @@ class FolderWatcher:
         outer = self
 
         class Handler(FileSystemEventHandler):
+
+            def __init__(self):
+                super().__init__()
+                self.event_queue = queue.Queue()
+                if outer.check_interval > 0:
+                    dispatch_thread = threading.Thread(target=self.dispatch_loop)
+                    dispatch_thread.daemon = True
+                    dispatch_thread.start()
+
+            def dispatch_loop(self):
+                while True:
+                    # at least process one event before sleeping
+                    event = self.event_queue.get()
+                    super().dispatch(event)
+                    while not self.event_queue.empty():
+                        event = self.event_queue.get()
+                        super().dispatch(event)
+
+                    # wait for check_interval or check_now_event
+                    outer.check_now_event.wait(timeout=outer.check_interval)
+                    if outer.check_now_event.is_set():
+                        outer.check_now_event.clear()
+
+            def dispatch(self, event: FileSystemEvent) -> None:
+                if outer.check_interval == 0:
+                    return super().dispatch(event)
+                else:
+                    self.event_queue.put(event)
+
+                
             def on_any_event(self, event) -> None:
-                print(f"Event: {event.event_type} {event.src_path} {event.dest_path} {event.is_directory}")
+                # print(f"Event: {event.event_type} {event.src_path} {event.dest_path} {event.is_directory}")
                 return super().on_any_event(event)
             def on_created(self, event):
                 assert isinstance(event.src_path, str)
@@ -183,7 +220,7 @@ class FolderWatcher:
                 old_hash = outer.last_snapshot[src]
                 new_hash = file_hash(outer.target_folder / src)
                 if old_hash == new_hash:
-                    print(f"File {src} has not changed")
+                    # print(f"File {src} has not changed")
                     return
                 outer._remove_from_snapshot(src)
                 outer.on_remove(src)

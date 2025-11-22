@@ -88,12 +88,13 @@ threads_store = DiskStore[Thread](Path("data/threads").resolve().absolute(), ind
 agents: Dict[str, Agent] = {}
 
 
-# cd to the wiki so the agent can access it without absolute path.
-wiki_path = os.environ.get('WIKI_PATH')
-if wiki_path:
-    os.chdir(wiki_path)
-else:
-    raise ValueError('WIKI_PATH environment variable is not set')
+# cd to the working directory so the agent can access it without absolute path.
+working_dir = os.environ.get('WORKING_DIR')
+if not working_dir:
+    working_dir = Path('.') / 'agent_working_dir'
+    working_dir.mkdir(parents=True, exist_ok=True)
+    
+os.chdir(working_dir)
 
 @app.get("/api/chat/threads/")
 async def get_threads() -> Dict[str, Thread]:

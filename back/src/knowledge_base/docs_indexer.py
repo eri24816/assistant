@@ -2,7 +2,7 @@ from pathlib import Path
 import chromadb
 from openai import OpenAI
 import random
-from folder_watcher import FolderWatcher
+from .folder_watcher import FolderWatcher
 def split_text(text, chunk_size=500, overlap=100):
     chunks = []
     start = 0
@@ -14,7 +14,7 @@ def split_text(text, chunk_size=500, overlap=100):
     return chunks
 
 class DocsIndexer:
-    def __init__(self, document_root: Path, persist_directory: Path|None = None, embedding_model: str = "text-embedding-3-small"):
+    def __init__(self, document_root: Path, persist_directory: Path|None = None, embedding_model: str = "text-embedding-3-small", check_interval: float = 60*5):
 
         if persist_directory is None:
             persist_directory = document_root / "_index"
@@ -30,10 +30,13 @@ class DocsIndexer:
         self.client = chromadb.PersistentClient(path=str(chroma_persist_directory))
         self.collection = self.client.get_or_create_collection("knowledge_base")
 
-        self.folder_watcher = FolderWatcher(document_root, document_snapshot_path, ignore_patterns=[str(persist_directory / "**")])
+        self.folder_watcher = FolderWatcher(document_root, document_snapshot_path, ignore_patterns=[str(persist_directory / "**")], check_interval=check_interval) # check every 5 minutes
 
         self.folder_watcher.set_handlers(on_add=self._on_add, on_remove=self._on_remove, on_rename=self._on_rename)
         self.folder_watcher.start()
+
+    def check(self):
+        self.folder_watcher.check()
 
     def _on_add(self, path: str):
         # Convert absolute path to a relative path before passing to _add_to_vector_db

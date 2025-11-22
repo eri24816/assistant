@@ -5,6 +5,10 @@ import traceback
 from typing import AsyncIterator, Iterable, cast, TypeVar
 from openai import OpenAI
 from dotenv import load_dotenv
+from knowledge_base.docs_indexer import DocsIndexer
+from tools.ls import ls
+from tools.util import generate_spec_from_function
+from util import notNone
 import tools
 from prompts import system_prompt
 import queue
@@ -12,9 +16,8 @@ import threading
 import asyncio
 from openai.types.responses import ResponseFunctionToolCall, ResponseOutputItemDoneEvent, ResponseOutputMessage, ResponseTextDeltaEvent, ResponseFunctionCallArgumentsDeltaEvent, ResponseOutputItemAddedEvent
 from openai.types.responses import ToolParam
-load_dotenv()
+from pathlib import Path
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 T = TypeVar('T')
 async def async_generator(generator: Iterable[T]) -> AsyncIterator[T]:
@@ -42,25 +45,47 @@ async def async_generator(generator: Iterable[T]) -> AsyncIterator[T]:
             break
         yield item
 
+load_dotenv()
+
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+working_dir = notNone(os.getenv("WORKING_DIR"))
+
+docs_indexer = DocsIndexer(Path(working_dir), check_interval=60*5)
+def search_from_memory(query: str) -> str:
+    """Search for information in the memory"""
+    search_results = docs_indexer.search_from_vector_db(query, n_results=5)
+    result = ''
+    assert search_results["documents"] is not None
+    assert search_results["metadatas"] is not None
+    for doc, metadata in zip(search_results["documents"][0], search_results["metadatas"][0]):
+        result += f"File: {metadata['source_id']} (chunk {metadata['chunk_id']})\n"
+        result += f"Content: {doc}\n\n"
+    return result
+
+def memorize(title: str, content: str) -> str:
+    """Memorize information. You can later search for it using search_from_memory tool."""
+    path = Path(working_dir) / "memory" / f"{title}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content)
+    docs_indexer.check()
+    return f"Information {title} memorized at memory/{title}.md"
+
+def reload_tools():
+    'Reload tools. This will load the tools that are available to the model. Use this after you add or modify tool code'
+    importlib.reload(tools)
+    load_tools()
+
+tool_specs = []
+
 def load_tools():
-    tools.tool_specs.append(
-        {
-            "type": "function",
-            "name": "reload_tools",
-            "description": "Reload tools. This will load the tools that are available to the model. Use this after you add or modify tool code",
-            "parameters": {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-        }
-    )
-    
-    def reload_tools():
-        importlib.reload(tools)
-        load_tools()
+    global tool_specs
+    tools.tools['search_from_memory'] = search_from_memory
+    tools.tools['memorize'] = memorize
 
     tools.tools['reload_tools'] = reload_tools
+    
+    tool_specs = [generate_spec_from_function(func) for func in tools.tools.values()]
 
     print(list(tools.tools.keys()))
 
@@ -89,10 +114,17 @@ class Agent:
 
     async def use_model(self):
         print('Using model')
+
+        # context is only for this call and is not saved in the state
+        context = [
+            {"role": "system", "content": f"The current working directory is {os.getcwd()}. The contents of the directory are: {ls()}"},
+        ]
+
+
         stream = client.responses.create(
             model="gpt-4o-mini",
-            input=self.state["messages"],
-            tools=cast(Iterable[ToolParam], tools.tool_specs),
+            input=self.state["messages"] + context, # context must follow the state messages so the cache can hit
+            tools=cast(Iterable[ToolParam], tool_specs),
             stream=True,
         )
 

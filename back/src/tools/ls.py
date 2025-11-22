@@ -2,15 +2,12 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 load_dotenv()
-def get_wiki_overview():
-    """Get an overview of the wiki.
+def ls(path: str = '.'):
+    """Get an overview of the directory.
     
     Returns:
-        An overview of the wiki as a string
+        An overview of the directory as a string
     """
-    base_path = os.environ.get('WIKI_PATH')
-    if not base_path:
-        raise ValueError('WIKI_PATH environment variable is not set')
 
     def walk(path: str, depth_remaining: int, max_files: list[int], max_dirs: list[int]):
         path = str(Path(path))
@@ -43,6 +40,4 @@ def get_wiki_overview():
         if too_much_dirs:
             result.append('... more directories')
         return result
-    return walk(base_path, 2, [10, 2], [10, 2])
-
-print(get_wiki_overview())
+    return walk(path, 2, [10, 2], [10, 2])
